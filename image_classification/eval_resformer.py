@@ -22,8 +22,7 @@ class ClassificationEvaluator(pl.LightningModule):
             image_size: int = 224,
             patch_size: int = 16,
             resize_type: str = "pi",
-            results_path: Optional[str] = None,
-    ):
+            results_path: Optional[str] = None, ):
         """Classification Evaluator
 
         Args:
@@ -89,22 +88,20 @@ class ClassificationEvaluator(pl.LightningModule):
         if self.results_path:
             acc = self.acc.compute().detach().cpu().item()
             acc = acc * 100
-            # 让所有进程都执行到这里，但只有主进程进行写入操作
             if self.trainer.is_global_zero:
                 column_name = f"{self.image_size}_{self.patch_size}"
 
                 if os.path.exists(self.results_path):
-                    # 结果文件已存在，读取现有数据
+
                     results_df = pd.read_csv(self.results_path, index_col=0)
-                    # 检查列是否存在，若不存在则添加
+
                     results_df[column_name] = acc
                 else:
-                    # 结果文件不存在，创建新的DataFrame
+
                     results_df = pd.DataFrame({column_name: [acc]})
-                    # 确保目录存在
+
                     os.makedirs(os.path.dirname(self.results_path), exist_ok=True)
 
-                # 保存更新后的结果
                 results_df.to_csv(self.results_path)
 
 
@@ -117,13 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("--root", type=str, default='./data')
     args = parser.parse_args()
     args["logger"] = False  # Disable saving logging artifacts
-
-    # wandb_logger = WandbLogger(name='test', project='flexivit', entity='pigpeppa', offline=False)
-    # trainer = pl.Trainer.from_argparse_args(args, logger=wandb_logger)
     trainer = pl.Trainer.from_argparse_args(args)
-    # for image_size, patch_size in [(32, 4), (48, 4), (64, 4), (80, 8), (96, 8), (112, 8), (128, 8), (144, 16),
-    #                                (160, 16), (176, 16), (192, 16), (208, 16), (224, 16)]:
-    # for image_size, patch_size in [(56, 4),(112, 8)]:
     for image_size, patch_size in [(28, 2), (42, 3), (56, 4), (70, 5), (84, 6), (98, 7), (112, 8), (126, 9), (140, 10),
                                    (154, 11), (168, 12),
                                    (182, 13), (196, 14), (210, 15), (224, 16), (238, 17), (252, 18)]:
