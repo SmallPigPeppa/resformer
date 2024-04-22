@@ -228,6 +228,7 @@ class ResFormer(nn.Module):
             
     
     def init_weights(self, mode=''):
+        import pdb;pdb.set_trace()
         assert mode in ('jax', 'jax_nlhb', 'nlhb', '')
         head_bias = -math.log(self.num_classes) if 'nlhb' in mode else 0.
         
@@ -263,7 +264,7 @@ def _init_vit_weights(module: nn.Module, name: str = '', head_bias: float = 0., 
       as my original init for compatibility with prev hparam / downstream use cases (ie DeiT).
     * When called w/ valid n (module name) and jax_impl=True, will (hopefully) match JAX impl
     """
-    import pdb;pdb.set_trace()
+    # import pdb;pdb.set_trace()
     if isinstance(module, nn.Linear):
         if name.startswith('head'):
             nn.init.zeros_(module.weight)
