@@ -80,7 +80,7 @@ class ClassificationEvaluator(pl.LightningModule):
         acc = self.acc(pred, y)
 
         # Log
-        self.log_dict({'test_loss': loss, 'test_acc': acc}, sync_dist=True, on_epoch=True)
+        self.log_dict({'imagesize': self.image_size, 'test_loss': loss, 'test_acc': acc}, sync_dist=True, on_epoch=True)
 
         return loss
 
