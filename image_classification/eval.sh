@@ -1,4 +1,4 @@
-/root/miniconda3/envs/torch/python eval_resformer.py \
+python eval_resformer.py \
   --max_epochs 1 \
   --accelerator gpu \
   --devices 2 \
