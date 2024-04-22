@@ -3,7 +3,7 @@ python eval_resformer.py \
   --accelerator gpu \
   --devices 2 \
   --works 4 \
-  --batch_size 64 \
+  --batch_size 512 \
   --root /root/autodl-tmp/torch_ds/imagenet \
   --model.weights deit_base_distilled_patch16_224.fb_in1k \
   --model.num_classes 1000 \
