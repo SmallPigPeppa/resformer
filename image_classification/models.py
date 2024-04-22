@@ -328,7 +328,7 @@ def resformer_base_patch16(pretrained=False, **kwargs):
     return model
 
 
-def load_timm_pretrained_weights(model, model_name, checkpoint_path=None):
+def load_timm_pretrained_weights(model, model_name, checkpoint_path=None, save_path=None):
     if checkpoint_path:
         state_dict = torch.load(checkpoint_path)
         print("Loaded weights from specified checkpoint.")
@@ -337,6 +337,10 @@ def load_timm_pretrained_weights(model, model_name, checkpoint_path=None):
         timm_model = create_model(model_name, pretrained=True)
         state_dict = timm_model.state_dict()
         print(f"Loaded default pretrained weights for {model_name}.")
+        if save_path:
+            # Save the pretrained weights to a specified path
+            torch.save(state_dict, save_path)
+            print(f"Saved pretrained weights to {save_path}")
 
     # Adapt timm pretrained model keys to match the expected keys in your model
     new_state_dict = OrderedDict()
@@ -382,6 +386,7 @@ def resformer_base_patch16_pretrained(pretrained=False, **kwargs):
         norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
     model.default_cfg = _cfg()
     model_name = 'deit_base_distilled_patch16_224.fb_in1k'
-    adapted_weights = load_timm_pretrained_weights(model, model_name)
+    ckpt_path = 'deit_base_distilled_patch16_224.fb_in1k.pth'
+    adapted_weights = load_timm_pretrained_weights(model, model_name, checkpoint_path=ckpt_path)
     model.load_state_dict(adapted_weights, strict=True)
     return model
