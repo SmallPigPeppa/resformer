@@ -205,7 +205,7 @@ def main(args):
             label_smoothing=args.smoothing, num_classes=args.nb_classes)
 
     print(f"Creating model: {args.model}")
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
 
     model = create_model(
         args.model,
