@@ -228,7 +228,7 @@ class ResFormer(nn.Module):
             
     
     def init_weights(self, mode=''):
-        import pdb;pdb.set_trace()
+        # import pdb;pdb.set_trace()
         assert mode in ('jax', 'jax_nlhb', 'nlhb', '')
         head_bias = -math.log(self.num_classes) if 'nlhb' in mode else 0.
         
