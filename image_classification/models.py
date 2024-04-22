@@ -328,6 +328,14 @@ def resformer_base_patch16(pretrained=False, **kwargs):
     return model
 
 
+def resformer_base_patch16_eval(pretrained=False, **kwargs):
+    model = ResFormer(
+        patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6))
+    # model.default_cfg = _cfg()
+    return model
+
+
 def load_timm_pretrained_weights(model, model_name, checkpoint_path=None, save_path=None):
     if checkpoint_path:
         state_dict = torch.load(checkpoint_path)
