@@ -9,9 +9,9 @@ from torchmetrics.classification.accuracy import Accuracy
 import torch.nn.functional as F
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
-from timm.models import create_model
-import models
 import torch
+from timm import create_model
+from models import resformer_base_patch16
 
 
 class ClassificationEvaluator(pl.LightningModule):
@@ -44,8 +44,7 @@ class ClassificationEvaluator(pl.LightningModule):
 
         # Load original weights
         print(f"Loading weights {self.weights}")
-        model = create_model(
-            'resformer_base_patch16',
+        model = resformer_base_patch16(
             img_size=[224],
             pretrained=False,
             num_classes=1000,
@@ -121,7 +120,8 @@ if __name__ == "__main__":
         args["model"].image_size = image_size
         args["model"].patch_size = patch_size
         model = ClassificationEvaluator(**args["model"])
-        data_config = timm.data.resolve_model_data_config(model.net)
+        net = create_model(args["model"].weights, pretrained=True)
+        data_config = timm.data.resolve_model_data_config(net)
         transform = timm.data.create_transform(**data_config, is_training=False)
         val_dataset = ImageFolder(root=os.path.join(args.root, 'val'), transform=transform)
         val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.works,
