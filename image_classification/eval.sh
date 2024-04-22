@@ -1,0 +1,13 @@
+python eval_resformer.py \
+  --max_epochs 1 \
+  --accelerator gpu \
+  --devices 2 \
+  --works 4 \
+  --batch_size 64 \
+  --root /root/autodl-tmp/torch_ds/imagenet \
+  --model.weights deit_base_distilled_patch16_224.fb_in1k \
+  --model.num_classes 1000 \
+  --model.patch_size 16 \
+  --model.image_size 224 \
+  --model.resize_type interpolate \
+  --model.results_path ./L2P_exp/resformer.csv

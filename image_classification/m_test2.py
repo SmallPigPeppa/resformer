@@ -6,6 +6,7 @@ from functools import partial
 from collections import OrderedDict
 
 
+
 def load_timm_pretrained_weights(model, model_name, checkpoint_path=None, save_path=None):
     if checkpoint_path:
         state_dict = torch.load(checkpoint_path)
@@ -67,6 +68,6 @@ a = load_timm_pretrained_weights(model, model_name, checkpoint_path='deit_base_d
 model.load_state_dict(a, strict=False)
 model.eval()
 
-input = torch.rand(size=[1, 3, 96, 96])
+input = torch.rand(size=[1, 3, 28, 28])
 out = model(input, 1)
 print(out.shape)
