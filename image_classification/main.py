@@ -35,7 +35,7 @@ def get_args_parser():
     # Model parameters
     parser.add_argument('--model', default='deit_base_patch16_224', type=str, metavar='MODEL',
                         help='Name of model to train')
-    parser.add_argument('--input-size',  default=224, type=int, nargs = '+', help='images input size')
+    parser.add_argument('--input-size', default=224, type=int, nargs='+', help='images input size')
 
     parser.add_argument('--drop', type=float, default=0.0, metavar='PCT',
                         help='Dropout rate (default: 0.)')
@@ -53,9 +53,9 @@ def get_args_parser():
     parser.add_argument('--amp', action='store_true')
     parser.add_argument('--no_amp', action='store_false', dest='amp')
     parser.set_defaults(amp=True)
-    
+
     parser.add_argument('--pretrained', action='store_true')
-    
+
     parser.add_argument('--opt', default='adamw', type=str, metavar='OPTIMIZER',
                         help='Optimizer (default: "adamw"')
     parser.add_argument('--opt-eps', default=1e-8, type=float, metavar='EPSILON',
@@ -73,7 +73,7 @@ def get_args_parser():
                         help='LR scheduler (default: "cosine"')
     parser.add_argument('--lr', type=float, default=5e-4, metavar='LR',
                         help='learning rate (default: 5e-4)')
-    parser.add_argument('--lr-noise', type=float, nargs='+', default=None, metavar='pct, pct', 
+    parser.add_argument('--lr-noise', type=float, nargs='+', default=None, metavar='pct, pct',
                         help='learning rate noise on/off epoch percentages')
     parser.add_argument('--lr-noise-pct', type=float, default=0.67, metavar='PERCENT',
                         help='learning rate noise limit percent (default: 0.67)')
@@ -108,7 +108,8 @@ def get_args_parser():
     parser.add_argument('--repeated-aug', action='store_true')
     parser.add_argument('--no-repeated-aug', action='store_false', dest='repeated_aug')
     parser.add_argument('--sep-mix', action='store_true', help='separate mixup for each training resolution')
-    parser.add_argument('--sep-aug', action='store_true', help='separate pre-processing augmentation for each training resolution')
+    parser.add_argument('--sep-aug', action='store_true',
+                        help='separate pre-processing augmentation for each training resolution')
     parser.set_defaults(repeated_aug=True)
 
     # * Random Erase params
@@ -136,30 +137,33 @@ def get_args_parser():
                         help='How to apply mixup/cutmix params. Per "batch", "pair", or "elem"')
 
     # Distillation parameters
-    parser.add_argument('--distillation-type', default='none',  choices=['none', 'l2', 'smooth-l1', 'cosine'], type=str, help="loss for knowledge distillation") 
+    parser.add_argument('--distillation-type', default='none', choices=['none', 'l2', 'smooth-l1', 'cosine'], type=str,
+                        help="loss for knowledge distillation")
     parser.add_argument('--distillation-alpha', default=1.0, type=float, help="parameteres for distillation")
     parser.add_argument('--distillation-tau', default=1.0, type=float, help="parameteres for distillation")
-    parser.add_argument('--distillation-target', choices=['cls', 'gap', 'logit'], type=str, help="self-distillation target of resformer")
+    parser.add_argument('--distillation-target', choices=['cls', 'gap', 'logit'], type=str,
+                        help="self-distillation target of resformer")
 
     # * Multi-resolution training params
     parser.add_argument('--multi-res', action='store_true', help='option to enable multi resolution training')
     parser.add_argument('--multi-res-step', type=int, help='step of multi-resolution traiing')
-    parser.add_argument('--multi-res-mode', type=str, default='co', choices=['co', 'iter'], help="mode of multi-resolution training")
+    parser.add_argument('--multi-res-mode', type=str, default='co', choices=['co', 'iter'],
+                        help="mode of multi-resolution training")
     parser.add_argument('--use-checkpoint', action='store_true')
-    parser.add_argument('--eval-step',  default=10, type=int, help='interval for evaluation during training')
-    
+    parser.add_argument('--eval-step', default=10, type=int, help='interval for evaluation during training')
+
     # * Finetuning params
     parser.add_argument('--finetune', default='', help='finetune from checkpoint')
-    
+
     # Dataset parameters
-    parser.add_argument('--data-path', default='/datasets01/imagenet_full_size/061417/', type=str,help='dataset path')
-    parser.add_argument('--output_dir', default='',help='path where to save, empty for no saving')
-    parser.add_argument('--writer_path', default='./output_dir',help='path for tensorboard writer')
-    parser.add_argument('--device', default='cuda',help='device to use for training / testing')
+    parser.add_argument('--data-path', default='/datasets01/imagenet_full_size/061417/', type=str, help='dataset path')
+    parser.add_argument('--output_dir', default='', help='path where to save, empty for no saving')
+    parser.add_argument('--writer_path', default='./output_dir', help='path for tensorboard writer')
+    parser.add_argument('--device', default='cuda', help='device to use for training / testing')
     parser.add_argument('--seed', default=0, type=int)
     parser.add_argument('--resume', default='', help='resume from checkpoint')
     parser.add_argument('--auto-resume', action='store_true', help='auto resume')
-    parser.add_argument('--start_epoch', default=0, type=int, metavar='N',help='start epoch')
+    parser.add_argument('--start_epoch', default=0, type=int, metavar='N', help='start epoch')
     parser.add_argument('--eval', action='store_true', help='Perform evaluation only')
     parser.add_argument('--dist-eval', action='store_true', default=False, help='Enabling distributed evaluation')
     parser.add_argument('--num_workers', default=10, type=int)
@@ -186,14 +190,14 @@ def main(args):
         os.makedirs(args.output_dir)
 
     writer = utils.setup_tensorboard(args)
-    
-    #TODO: only support IN-1k input 
+
+    # TODO: only support IN-1k input
     args.nb_classes = 1000
-    dataset_train, data_loader_train = build_imagenet_dataloader(is_train= True, args=args)
-    dataset_val, data_loader_val = build_imagenet_dataloader(is_train= False, args=args)
+    dataset_train, data_loader_train = build_imagenet_dataloader(is_train=True, args=args)
+    dataset_val, data_loader_val = build_imagenet_dataloader(is_train=False, args=args)
 
     mixup_fn = None
-    mixup_active = args.mixup > 0 or args.cutmix > 0. or args.cutmix_minmax is not None 
+    mixup_active = args.mixup > 0 or args.cutmix > 0. or args.cutmix_minmax is not None
     if mixup_active:
         mixup_fn = Mixup(
             mixup_alpha=args.mixup, cutmix_alpha=args.cutmix, cutmix_minmax=args.cutmix_minmax,
@@ -201,19 +205,18 @@ def main(args):
             label_smoothing=args.smoothing, num_classes=args.nb_classes)
 
     print(f"Creating model: {args.model}")
+    import pdb; pdb.set_trace()
 
     model = create_model(
         args.model,
-        img_size = args.input_size,
+        img_size=args.input_size,
         pretrained=False,
         num_classes=args.nb_classes,
         drop_rate=args.drop,
         drop_path_rate=args.drop_path,
         drop_block_rate=None,
-        use_checkpoint = args.use_checkpoint,
+        use_checkpoint=args.use_checkpoint,
     )
-
-    
 
     if args.finetune:
         if args.finetune.startswith('https'):
@@ -221,18 +224,17 @@ def main(args):
                 args.finetune, map_location='cpu', check_hash=True)
         else:
             checkpoint = torch.load(args.finetune, map_location='cpu')
-        
+
         if 'model' in checkpoint.keys():
             checkpoint_model = checkpoint['model']
         else:
-            checkpoint_model  = checkpoint
+            checkpoint_model = checkpoint
         # state_dict = model.state_dict()
         msg = model.load_state_dict(checkpoint_model, strict=False)
         print(msg)
 
     model.to(device)
-    
-    
+
     model_ema = None
     if args.model_ema:
         # Important to create EMA model after cuda(), DP wrapper, and AMP but before SyncBN and DDP wrapper
@@ -244,25 +246,23 @@ def main(args):
 
     model_without_ddp = model
 
-    linear_scaled_lr = args.lr * args.batch_size * utils.get_world_size()  * args.optim_step / 512.0
+    linear_scaled_lr = args.lr * args.batch_size * utils.get_world_size() * args.optim_step / 512.0
     args.lr = linear_scaled_lr
-    
-    
+
     optimizer = create_optimizer(args, model_without_ddp)
-    
+
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
         model_without_ddp = model.module
 
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    
+
     print('number of params:', n_parameters)
     loss_scaler = utils.NativeScalerWithGradNormCount()
 
     args.warmup_epochs = int(args.warmup_epochs)
     args.cooldown_epochs = int(args.cooldown_epochs)
     lr_scheduler, _ = create_scheduler(args, optimizer)
-
 
     criterion = LabelSmoothingCrossEntropy()
 
@@ -278,13 +278,13 @@ def main(args):
     )
 
     output_dir = Path(args.output_dir)
-    
+
     if args.auto_resume:
         if args.resume == '':
             args.resume = os.path.join(args.output_dir, 'checkpoint.pth')
             if not os.path.exists(args.resume):
                 args.resume = ''
-                
+
     if args.resume:
         if args.resume.startswith('https'):
             checkpoint = torch.hub.load_state_dict_from_url(
@@ -292,7 +292,7 @@ def main(args):
         else:
             checkpoint = torch.load(args.resume, map_location='cpu')
         if 'model' in checkpoint.keys():
-            msg = model_without_ddp.load_state_dict(checkpoint['model'],  strict=False)
+            msg = model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
             print(msg)
             if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
                 optimizer.load_state_dict(checkpoint['optimizer'])
@@ -313,7 +313,7 @@ def main(args):
     print(f"Start training for {args.epochs} epochs")
     start_time = time.time()
     max_accuracy = 0.0
-    
+
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             data_loader_train.sampler.set_epoch(epoch)
@@ -322,11 +322,11 @@ def main(args):
             optimizer, device, epoch, loss_scaler,
             args.clip_grad, model_ema, mixup_fn,
             # set_training_mode=args.finetune == '',
-            writer = writer, 
-            args = args)
-            
+            writer=writer,
+            args=args)
+
         lr_scheduler.step(epoch)
-        
+
         if args.output_dir:
             checkpoint_paths = [output_dir / 'checkpoint.pth']
             for checkpoint_path in checkpoint_paths:
@@ -339,12 +339,12 @@ def main(args):
                     'scaler': loss_scaler.state_dict(),
                     'args': args,
                 }, checkpoint_path)
-        
+
         if (epoch % args.eval_step == 0) or epoch >= args.epochs - args.eval_step:
             test_stats = evaluate(data_loader_val, model, device, args.input_size, args.amp)
-            
+
             print(f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
-            
+
             if max_accuracy < test_stats["acc1"]:
                 max_accuracy = test_stats["acc1"]
                 if args.output_dir:
@@ -359,29 +359,28 @@ def main(args):
                             'scaler': loss_scaler.state_dict(),
                             'args': args,
                         }, checkpoint_path)
-                
+
             print(f'Max accuracy: {max_accuracy:.2f}%')
 
             log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                        **{f'test_{k}': v for k, v in test_stats.items()},
-                        'epoch': epoch,
-                        'n_parameters': n_parameters}
-            
+                         **{f'test_{k}': v for k, v in test_stats.items()},
+                         'epoch': epoch,
+                         'n_parameters': n_parameters}
+
             for k, v in test_stats.items():
                 if utils.is_main_process():
-                    writer.add_scalar(f'Test / {k}', v , epoch)     
+                    writer.add_scalar(f'Test / {k}', v, epoch)
         else:
             log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                                'epoch': epoch,
-                                'n_parameters': n_parameters}
-            
-        
+                         'epoch': epoch,
+                         'n_parameters': n_parameters}
+
         if args.output_dir and utils.is_main_process():
             with (output_dir / "log.txt").open("a") as f:
                 f.write(json.dumps(log_stats) + "\n")
-        
+
         if epoch >= args.epochs:
-            return 
+            return
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
@@ -389,10 +388,10 @@ def main(args):
 
 
 if __name__ == '__main__':
-    os.environ["TORCH_DISTRIBUTED_DEBUG"] = "INFO" 
+    os.environ["TORCH_DISTRIBUTED_DEBUG"] = "INFO"
     parser = argparse.ArgumentParser('DeiT training and evaluation script', parents=[get_args_parser()])
     args = parser.parse_args()
-    args.multi_res_step = len(args.input_size) if args.multi_res_step is None else args.multi_res_step 
+    args.multi_res_step = len(args.input_size) if args.multi_res_step is None else args.multi_res_step
     args.multi_res = len(args.input_size) > 1
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
