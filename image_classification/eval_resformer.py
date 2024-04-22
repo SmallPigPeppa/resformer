@@ -46,7 +46,7 @@ class ClassificationEvaluator(pl.LightningModule):
         print(f"Loading weights {self.weights}")
         model = create_model(
             'resformer_base_patch16',
-            img_size=224,
+            img_size=[224],
             pretrained=False,
             num_classes=1000,
             drop_rate=0.0,
