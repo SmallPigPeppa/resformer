@@ -11,7 +11,7 @@ from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 import torch
 from timm import create_model
-from models import resformer_base_patch16
+from models import resformer_base_patch16_eval as resformer_base_patch16
 
 
 class ClassificationEvaluator(pl.LightningModule):
