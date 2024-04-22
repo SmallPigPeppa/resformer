@@ -55,7 +55,7 @@ class ClassificationEvaluator(pl.LightningModule):
             drop_block_rate=None,
             use_checkpoint=False,
         )
-        checkpoint_path = '.pth'
+        checkpoint_path = 'resformer_base_patch16_mr_128_160_224.pth'
         state_dict = torch.load(checkpoint_path)
         self.net = model
         self.net.load_state_dict(state_dict, strict=True)
