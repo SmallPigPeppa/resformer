@@ -388,5 +388,5 @@ def resformer_base_patch16_pretrained(pretrained=False, **kwargs):
     model_name = 'deit_base_distilled_patch16_224.fb_in1k'
     ckpt_path = 'deit_base_distilled_patch16_224.fb_in1k.pth'
     adapted_weights = load_timm_pretrained_weights(model, model_name, checkpoint_path=ckpt_path)
-    model.load_state_dict(adapted_weights, strict=True)
+    model.load_state_dict(adapted_weights, strict=False)
     return model

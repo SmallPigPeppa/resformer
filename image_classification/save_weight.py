@@ -60,6 +60,8 @@ model_name = 'deit_base_distilled_patch16_224.fb_in1k'
 
 model = ResFormer(patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
                   norm_layer=partial(nn.LayerNorm, eps=1e-6))
-load_timm_pretrained_weights(model, model_name,save_path='deit_base_distilled_patch16_224.fb_in1k.pth')
+a = load_timm_pretrained_weights(model, model_name, save_path='deit_base_distilled_patch16_224.fb_in1k.pth')
 
-load_timm_pretrained_weights(model,model_name, checkpoint_path='deit_base_distilled_patch16_224.fb_in1k.pth')
+a = load_timm_pretrained_weights(model, model_name, checkpoint_path='deit_base_distilled_patch16_224.fb_in1k.pth')
+
+model.load_state_dict(a, strict=True)
