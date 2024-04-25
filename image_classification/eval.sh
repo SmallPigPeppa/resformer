@@ -22,7 +22,7 @@ python eval_resformer_best.py \
   --batch_size 512 \
   --root /root/autodl-tmp/torch_ds/imagenet \
   --model.weights deit_base_distilled_patch16_224.fb_in1k \
-  --model.ckpt_path out_distill/best_checkpoint.pth \
+  --model.ckpt_path out-distill/best_checkpoint.pth \
   --model.num_classes 1000 \
   --model.patch_size 16 \
   --model.image_size 224 \
