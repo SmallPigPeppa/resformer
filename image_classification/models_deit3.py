@@ -553,7 +553,7 @@ def resformer_base_patch16_deit3b(pretrained=False, **kwargs):
     model = ResFormer(
         patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
-    model.default_cfg = _cfg()
+    # model.default_cfg = _cfg()
     model_name = 'deit3_base_patch16_224.fb_in22k_ft_in1k'
     ckpt_path = 'deit3_base_patch16_224.fb_in22k_ft_in1k.pth'
     adapted_weights = load_timm_pretrained_weights(model, model_name, checkpoint_path=ckpt_path)
@@ -566,7 +566,7 @@ def resformer_small_patch16_deit3s(pretrained=False, **kwargs):
     model = ResFormer(
         patch_size=16, embed_dim=384, depth=12, num_heads=6, mlp_ratio=4, qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
-    model.default_cfg = _cfg()
+    # model.default_cfg = _cfg()
     model_name = 'deit3_small_patch16_224.fb_in22k_ft_in1k'
     ckpt_path = 'deit3_small_patch16_224.fb_in22k_ft_in1k.pth'
     adapted_weights = load_timm_pretrained_weights(model, model_name, checkpoint_path=ckpt_path)
