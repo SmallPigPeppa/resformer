@@ -428,7 +428,7 @@ def resformer_small_patch16_deit3s(pretrained=False, **kwargs):
 
 
 @register_model
-def resformer_small_patch16_deits(pretrained=False, **kwargs):
+def resformer_small_patch16_deits_distill(pretrained=False, **kwargs):
     model = ResFormer(
         patch_size=16, embed_dim=384, depth=12, num_heads=6, mlp_ratio=4, qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
