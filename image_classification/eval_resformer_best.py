@@ -22,7 +22,7 @@ class ClassificationEvaluator(pl.LightningModule):
             image_size: int = 224,
             patch_size: int = 16,
             resize_type: str = "pi",
-            ckpt_path: str = None,
+            ckpt_path: str = 'best.pth',
             results_path: Optional[str] = None, ):
         """Classification Evaluator
 
