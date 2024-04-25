@@ -1,5 +1,5 @@
 from timm import create_model
-from models import ResFormer
+from models_deit3 import ResFormer
 import torch
 import torch.nn as nn
 from functools import partial
@@ -57,7 +57,7 @@ def load_timm_pretrained_weights(model, model_name, checkpoint_path=None, save_p
 
 
 model_name = 'deit3_small_patch16_224.fb_in22k_ft_in1k'
-
+timm_model = create_model(model_name, pretrained=True)
 model = ResFormer(patch_size=16, embed_dim=384, depth=12, num_heads=6, mlp_ratio=4, qkv_bias=True,
                   norm_layer=partial(nn.LayerNorm, eps=1e-6))
 # model = ResFormer(patch_size=16, embed_dim=384, depth=12, num_heads=6, mlp_ratio=4, qkv_bias=True,

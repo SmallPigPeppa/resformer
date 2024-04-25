@@ -20,6 +20,7 @@ from datasets import build_imagenet_dataloader
 from engine import train_one_epoch, evaluate
 from losses import DistillationLoss
 import models
+import models_deit3
 import utils
 
 

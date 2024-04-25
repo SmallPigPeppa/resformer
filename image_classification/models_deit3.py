@@ -11,59 +11,176 @@ from collections import OrderedDict
 import torch.utils.checkpoint as checkpoint
 import numpy as np
 from timm import create_model
+from typing import Any, Callable, Dict, Optional, Sequence, Set, Tuple, Type, Union, List
+from timm.layers import PatchEmbed, Mlp, DropPath, AttentionPoolLatent, RmsNorm, PatchDropout, SwiGLUPacked, \
+    trunc_normal_, lecun_normal_, resample_patch_embed, resample_abs_pos_embed, use_fused_attn, \
+    get_act_layer, get_norm_layer, LayerType
+from torch.jit import Final
+from timm.models import VisionTransformer
+
+# class Attention(nn.Module):
+#     def __init__(self, dim, num_heads=8, qkv_bias=False, attn_drop=0., proj_drop=0.):
+#         super().__init__()
+#         self.num_heads = num_heads
+#         head_dim = dim // num_heads
+#         self.scale = head_dim ** -0.5
+#         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
+#         self.attn_drop = nn.Dropout(attn_drop)
+#         self.proj = nn.Linear(dim, dim)
+#         self.proj_drop = nn.Dropout(proj_drop)
+#         self.get_v = nn.Conv2d(head_dim, head_dim, kernel_size=3, stride=1, padding=1, groups=head_dim)
+#         nn.init.zeros_(self.get_v.weight)
+#         nn.init.zeros_(self.get_v.bias)
+#
+#     def get_local_pos_embed(self, x):
+#         B, _, N, C = x.shape
+#         H = W = int(np.sqrt(N - 1))
+#         x = x[:, :, 1:].transpose(-2, -1).contiguous().reshape(B * self.num_heads, -1, H, W)
+#         local_pe = self.get_v(x).reshape(B, -1, C, N - 1).transpose(-2, -1).contiguous()  # B, H, N-1, C
+#         local_pe = torch.cat((torch.zeros((B, self.num_heads, 1, C), device=x.device), local_pe), dim=2)  # B, H, N, C
+#         return local_pe
+#
+#     def forward(self, x):
+#         B, N, C = x.shape
+#         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+#         q, k, v = qkv.unbind(0)  # make torchscript happy (cannot use tensor as tuple)
+#         attn = (q @ k.transpose(-2, -1)) * self.scale
+#         attn = attn.softmax(dim=-1)
+#         attn = self.attn_drop(attn)
+#         local_pe = self.get_local_pos_embed(v)
+#         x = ((attn @ v + local_pe)).transpose(1, 2).reshape(B, N, C)
+#         x = self.proj(x)
+#         x = self.proj_drop(x)
+#         return x
+
+#
+# class Block(nn.Module):
+#     def __init__(self, dim, num_heads, mlp_ratio=4., qkv_bias=False, drop=0., attn_drop=0.,
+#                  drop_path=0., act_layer=nn.GELU, norm_layer=nn.LayerNorm):
+#         super().__init__()
+#         self.norm1 = norm_layer(dim)
+#         self.attn = Attention(dim, num_heads=num_heads, qkv_bias=qkv_bias, attn_drop=attn_drop, proj_drop=drop)
+#         # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
+#         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+#         self.norm2 = norm_layer(dim)
+#         mlp_hidden_dim = int(dim * mlp_ratio)
+#         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
+#
+#     def forward(self, x):
+#         x = x + self.drop_path(self.attn(self.norm1(x)))
+#         x = x + self.drop_path(self.mlp(self.norm2(x)))
+#         return x
 
 
 class Attention(nn.Module):
-    def __init__(self, dim, num_heads=8, qkv_bias=False, attn_drop=0., proj_drop=0.):
+    fused_attn: Final[bool]
+
+    def __init__(
+            self,
+            dim: int,
+            num_heads: int = 8,
+            qkv_bias: bool = False,
+            qk_norm: bool = False,
+            attn_drop: float = 0.,
+            proj_drop: float = 0.,
+            norm_layer: nn.Module = nn.LayerNorm,
+    ) -> None:
         super().__init__()
+        assert dim % num_heads == 0, 'dim should be divisible by num_heads'
         self.num_heads = num_heads
-        head_dim = dim // num_heads
-        self.scale = head_dim ** -0.5
+        self.head_dim = dim // num_heads
+        self.scale = self.head_dim ** -0.5
+        self.fused_attn = use_fused_attn()
+
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
+        self.q_norm = norm_layer(self.head_dim) if qk_norm else nn.Identity()
+        self.k_norm = norm_layer(self.head_dim) if qk_norm else nn.Identity()
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
-        self.get_v = nn.Conv2d(head_dim, head_dim, kernel_size=3, stride=1, padding=1, groups=head_dim)
-        nn.init.zeros_(self.get_v.weight)
-        nn.init.zeros_(self.get_v.bias)
 
-    def get_local_pos_embed(self, x):
-        B, _, N, C = x.shape
-        H = W = int(np.sqrt(N - 1))
-        x = x[:, :, 1:].transpose(-2, -1).contiguous().reshape(B * self.num_heads, -1, H, W)
-        local_pe = self.get_v(x).reshape(B, -1, C, N - 1).transpose(-2, -1).contiguous()  # B, H, N-1, C
-        local_pe = torch.cat((torch.zeros((B, self.num_heads, 1, C), device=x.device), local_pe), dim=2)  # B, H, N, C
-        return local_pe
-
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, N, C = x.shape
-        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
-        q, k, v = qkv.unbind(0)  # make torchscript happy (cannot use tensor as tuple)
-        attn = (q @ k.transpose(-2, -1)) * self.scale
-        attn = attn.softmax(dim=-1)
-        attn = self.attn_drop(attn)
-        local_pe = self.get_local_pos_embed(v)
-        x = ((attn @ v + local_pe)).transpose(1, 2).reshape(B, N, C)
+        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
+        q, k, v = qkv.unbind(0)
+        q, k = self.q_norm(q), self.k_norm(k)
+
+        if self.fused_attn:
+            x = F.scaled_dot_product_attention(
+                q, k, v,
+                dropout_p=self.attn_drop.p if self.training else 0.,
+            )
+        else:
+            q = q * self.scale
+            attn = q @ k.transpose(-2, -1)
+            attn = attn.softmax(dim=-1)
+            attn = self.attn_drop(attn)
+            x = attn @ v
+
+        x = x.transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x
 
 
+class LayerScale(nn.Module):
+    def __init__(
+            self,
+            dim: int,
+            init_values: float = 1e-5,
+            inplace: bool = False,
+    ) -> None:
+        super().__init__()
+        self.inplace = inplace
+        self.gamma = nn.Parameter(init_values * torch.ones(dim))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x.mul_(self.gamma) if self.inplace else x * self.gamma
+
+
 class Block(nn.Module):
-    def __init__(self, dim, num_heads, mlp_ratio=4., qkv_bias=False, drop=0., attn_drop=0.,
-                 drop_path=0., act_layer=nn.GELU, norm_layer=nn.LayerNorm):
+    def __init__(
+            self,
+            dim: int,
+            num_heads: int,
+            mlp_ratio: float = 4.,
+            qkv_bias: bool = False,
+            qk_norm: bool = False,
+            proj_drop: float = 0.,
+            attn_drop: float = 0.,
+            init_values: Optional[float] = None,
+            drop_path: float = 0.,
+            act_layer: nn.Module = nn.GELU,
+            norm_layer: nn.Module = nn.LayerNorm,
+            mlp_layer: nn.Module = Mlp,
+    ) -> None:
         super().__init__()
         self.norm1 = norm_layer(dim)
-        self.attn = Attention(dim, num_heads=num_heads, qkv_bias=qkv_bias, attn_drop=attn_drop, proj_drop=drop)
-        # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
-        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
-        self.norm2 = norm_layer(dim)
-        mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
+        self.attn = Attention(
+            dim,
+            num_heads=num_heads,
+            qkv_bias=qkv_bias,
+            qk_norm=qk_norm,
+            attn_drop=attn_drop,
+            proj_drop=proj_drop,
+            norm_layer=norm_layer,
+        )
+        self.ls1 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
+        self.drop_path1 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
 
-    def forward(self, x):
-        x = x + self.drop_path(self.attn(self.norm1(x)))
-        x = x + self.drop_path(self.mlp(self.norm2(x)))
+        self.norm2 = norm_layer(dim)
+        self.mlp = mlp_layer(
+            in_features=dim,
+            hidden_features=int(dim * mlp_ratio),
+            act_layer=act_layer,
+            drop=proj_drop,
+        )
+        self.ls2 = LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
+        self.drop_path2 = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = x + self.drop_path1(self.ls1(self.attn(self.norm1(x))))
+        x = x + self.drop_path2(self.ls2(self.mlp(self.norm2(x))))
         return x
 
 
@@ -171,9 +288,27 @@ class ResFormer(nn.Module):
 
         self.blocks = nn.Sequential(*[
             Block(
-                dim=embed_dim, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, drop=drop_rate,
+                dim=embed_dim, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias,
                 attn_drop=attn_drop_rate, drop_path=dpr[i], norm_layer=norm_layer, act_layer=act_layer)
             for i in range(depth)])
+        self.blocks = nn.Sequential(*[
+            Block(
+                dim=embed_dim,
+                num_heads=num_heads,
+                mlp_ratio=mlp_ratio,
+                qkv_bias=qkv_bias,
+                qk_norm=False,
+                init_values=1e-06,
+                proj_drop=0.0,
+                attn_drop=attn_drop_rate,
+                drop_path=dpr[i],
+                norm_layer=norm_layer,
+                act_layer=act_layer,
+                mlp_layer=Mlp,
+            )
+            for i in range(depth)])
+
+
         self.norm = norm_layer(embed_dim)
 
         self.depth = depth
@@ -388,65 +523,65 @@ def load_timm_pretrained_weights(model, model_name, checkpoint_path=None, save_p
 
 
 
-@register_model
-def resformer_base_patch16_pretrained(pretrained=False, **kwargs):
-    model = ResFormer(
-        patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
-        norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
-    model.default_cfg = _cfg()
-    model_name = 'deit_base_distilled_patch16_224.fb_in1k'
-    ckpt_path = 'deit_base_distilled_patch16_224.fb_in1k.pth'
-    adapted_weights = load_timm_pretrained_weights(model, model_name, checkpoint_path=ckpt_path)
-    model.load_state_dict(adapted_weights, strict=False)
-    return model
-
-@register_model
-def resformer_base_patch16_deitb_distill(pretrained=False, **kwargs):
-    model = ResFormer(
-        patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
-        norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
-    model.default_cfg = _cfg()
-    model_name = 'deit_base_distilled_patch16_224.fb_in1k'
-    ckpt_path = 'deit_base_distilled_patch16_224.fb_in1k.pth'
-    adapted_weights = load_timm_pretrained_weights(model, model_name, checkpoint_path=ckpt_path)
-    model.load_state_dict(adapted_weights, strict=False)
-    return model
-
-
 # @register_model
-# def resformer_base_patch16_deit3b(pretrained=False, **kwargs):
+# def resformer_base_patch16_pretrained(pretrained=False, **kwargs):
 #     model = ResFormer(
 #         patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
 #         norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
 #     model.default_cfg = _cfg()
-#     model_name = 'deit3_base_patch16_224.fb_in22k_ft_in1k'
-#     ckpt_path = 'deit3_base_patch16_224.fb_in22k_ft_in1k.pth'
+#     model_name = 'deit_base_distilled_patch16_224.fb_in1k'
+#     ckpt_path = 'deit_base_distilled_patch16_224.fb_in1k.pth'
 #     adapted_weights = load_timm_pretrained_weights(model, model_name, checkpoint_path=ckpt_path)
 #     model.load_state_dict(adapted_weights, strict=False)
 #     return model
 
-
 # @register_model
-# def resformer_small_patch16_deit3s(pretrained=False, **kwargs):
+# def resformer_base_patch16_deitb_distill(pretrained=False, **kwargs):
 #     model = ResFormer(
-#         patch_size=16, embed_dim=384, depth=12, num_heads=6, mlp_ratio=4, qkv_bias=True,
+#         patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
 #         norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
 #     model.default_cfg = _cfg()
-#     model_name = 'deit3_small_patch16_224.fb_in22k_ft_in1k'
-#     ckpt_path = 'deit3_small_patch16_224.fb_in22k_ft_in1k.pth'
+#     model_name = 'deit_base_distilled_patch16_224.fb_in1k'
+#     ckpt_path = 'deit_base_distilled_patch16_224.fb_in1k.pth'
 #     adapted_weights = load_timm_pretrained_weights(model, model_name, checkpoint_path=ckpt_path)
 #     model.load_state_dict(adapted_weights, strict=False)
 #     return model
 
 
 @register_model
-def resformer_small_patch16_deits_distill(pretrained=False, **kwargs):
+def resformer_base_patch16_deit3b(pretrained=False, **kwargs):
+    model = ResFormer(
+        patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+    model.default_cfg = _cfg()
+    model_name = 'deit3_base_patch16_224.fb_in22k_ft_in1k'
+    ckpt_path = 'deit3_base_patch16_224.fb_in22k_ft_in1k.pth'
+    adapted_weights = load_timm_pretrained_weights(model, model_name, checkpoint_path=ckpt_path)
+    model.load_state_dict(adapted_weights, strict=False)
+    return model
+
+
+@register_model
+def resformer_small_patch16_deit3s(pretrained=False, **kwargs):
     model = ResFormer(
         patch_size=16, embed_dim=384, depth=12, num_heads=6, mlp_ratio=4, qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
     model.default_cfg = _cfg()
-    model_name = 'deit_small_distilled_patch16_224.fb_in1k'
-    ckpt_path = 'deit_small_distilled_patch16_224.fb_in1k.pth'
+    model_name = 'deit3_small_patch16_224.fb_in22k_ft_in1k'
+    ckpt_path = 'deit3_small_patch16_224.fb_in22k_ft_in1k.pth'
     adapted_weights = load_timm_pretrained_weights(model, model_name, checkpoint_path=ckpt_path)
     model.load_state_dict(adapted_weights, strict=False)
     return model
+
+
+# @register_model
+# def resformer_small_patch16_deits_distill(pretrained=False, **kwargs):
+#     model = ResFormer(
+#         patch_size=16, embed_dim=384, depth=12, num_heads=6, mlp_ratio=4, qkv_bias=True,
+#         norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+#     model.default_cfg = _cfg()
+#     model_name = 'deit_small_distilled_patch16_224.fb_in1k'
+#     ckpt_path = 'deit_small_distilled_patch16_224.fb_in1k.pth'
+#     adapted_weights = load_timm_pretrained_weights(model, model_name, checkpoint_path=ckpt_path)
+#     model.load_state_dict(adapted_weights, strict=False)
+#     return model
