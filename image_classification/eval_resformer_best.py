@@ -22,6 +22,7 @@ class ClassificationEvaluator(pl.LightningModule):
             image_size: int = 224,
             patch_size: int = 16,
             resize_type: str = "pi",
+            ckpt_path: str = None,
             results_path: Optional[str] = None, ):
         """Classification Evaluator
 
@@ -54,7 +55,7 @@ class ClassificationEvaluator(pl.LightningModule):
             use_checkpoint=False,
         )
         # checkpoint_path = 'resformer_base_patch16_mr_128_160_224.pth'
-        checkpoint_path = 'best_checkpoint.pth'
+        checkpoint_path = ckpt_path
         state_dict = torch.load(checkpoint_path, map_location='cpu')['model']
         self.net = model
         self.net.load_state_dict(state_dict, strict=True)
