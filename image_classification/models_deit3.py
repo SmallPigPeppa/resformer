@@ -11,24 +11,6 @@ from collections import OrderedDict
 import torch.utils.checkpoint as checkpoint
 import numpy as np
 from timm import create_model
-import math
-import logging
-from functools import partial
-from collections import OrderedDict
-from copy import deepcopy
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
-from timm.models.helpers import build_model_with_cfg, named_apply, adapt_input_conv
-from timm.models.layers import PatchEmbed, Mlp, DropPath, trunc_normal_, lecun_normal_
-from timm.models.registry import register_model
-from typing import Any, Callable, Dict, Optional, Sequence, Set, Tuple, Type, Union, List
-from torch.jit import Final
-
-
 
 class LayerScale(nn.Module):
     def __init__(
