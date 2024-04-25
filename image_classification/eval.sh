@@ -20,7 +20,7 @@ python eval_resformer_best.py \
   --devices 1 \
   --works 4 \
   --batch_size 512 \
-  --root /root/autodl-tmp/torch_ds/imagenet \
+  --root /ppio_net0/torch_ds/imagenet \
   --model.weights deit_base_distilled_patch16_224.fb_in1k \
   --model.ckpt_path out-distill/best_checkpoint.pth \
   --model.num_classes 1000 \
@@ -36,7 +36,7 @@ python eval_resformer_best.py \
   --devices 1 \
   --works 4 \
   --batch_size 512 \
-  --root /root/autodl-tmp/torch_ds/imagenet \
+  --root /ppio_net0/torch_ds/imagenet \
   --model.weights deit_base_distilled_patch16_224.fb_in1k \
   --model.ckpt_path out/best_checkpoint.pth \
   --model.num_classes 1000 \
