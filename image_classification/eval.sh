@@ -17,7 +17,7 @@
 python eval_resformer_best.py \
   --max_epochs 1 \
   --accelerator gpu \
-  --devices 2 \
+  --devices 1 \
   --works 4 \
   --batch_size 512 \
   --root /root/autodl-tmp/torch_ds/imagenet \
@@ -33,7 +33,7 @@ python eval_resformer_best.py \
 python eval_resformer_best.py \
   --max_epochs 1 \
   --accelerator gpu \
-  --devices 2 \
+  --devices 1 \
   --works 4 \
   --batch_size 512 \
   --root /root/autodl-tmp/torch_ds/imagenet \
