@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from functools import partial
 from collections import OrderedDict
-from timm.models import VisionTransformer
+# from timm.models import VisionTransformer
 
 
 def load_timm_pretrained_weights(model, model_name, checkpoint_path=None, save_path=None):
