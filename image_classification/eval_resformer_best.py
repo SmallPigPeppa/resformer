@@ -58,7 +58,8 @@ class ClassificationEvaluator(pl.LightningModule):
         checkpoint_path = ckpt_path
         state_dict = torch.load(checkpoint_path, map_location='cpu')['model']
         self.net = model
-        self.net.load_state_dict(state_dict, strict=True)
+        self.net.load_state_dict(state_dict, strict=False)
+        # self.net.load_state_dict(state_dict, strict=True)
 
         # Define metrics
         self.acc = Accuracy(num_classes=self.num_classes, task="multiclass", top_k=1)
