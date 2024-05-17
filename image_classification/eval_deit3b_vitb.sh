@@ -5,7 +5,7 @@ python eval_resformer_best_deit3b.py \
   --accelerator gpu \
   --devices 1 \
   --works 8 \
-  --batch_size 256 \
+  --batch_size 128 \
   --root /ppio_net0/torch_ds/imagenet \
   --model.weights deit3_base_patch16_224.fb_in22k_ft_in1k \
   --model.ckpt_path out-deit3b/best_checkpoint.pth \
@@ -21,7 +21,7 @@ python eval_resformer_best_vitb.py \
   --accelerator gpu \
   --devices 1 \
   --works 8 \
-  --batch_size 256 \
+  --batch_size 128 \
   --root /ppio_net0/torch_ds/imagenet \
   --model.weights vit_base_patch16_224.augreg_in21k_ft_in1k \
   --model.ckpt_path out-vitb-21k/best_checkpoint.pth \
